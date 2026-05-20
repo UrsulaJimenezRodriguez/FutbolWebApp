@@ -7,8 +7,12 @@ Use cWebPanel.pkg
 Use cWebMenuGroup.pkg
 Use cWebMenuItem.pkg
 Use cWebForm.pkg
+Use cWebButton.pkg
 
 Use cposicionDataDictionary.dd
+
+// EVITAMOS EL ERROR DE COMPILACIÓN 4514
+Register_Object oSelectJugador
 
 Object oZoomPosicion is a cWebView
     Set piColumnCount to 12
@@ -20,15 +24,36 @@ Object oZoomPosicion is a cWebView
     Set piMaxWidth to 1024
 
     Object oposicion_DD is a cposicionDataDictionary
-    End_Object 
+    End_Object
 
-    Set Main_DD To oposicion_DD
-    Set Server  To oposicion_DD
-
+    Set Main_DD to oposicion_DD
+    Set Server  to oposicion_DD
 
     Object oWebMainPanel is a cWebPanel
         Set piColumnCount to 12
         WebSetResponsive piColumnCount rmMobile to 4
+
+        // BOTÓN CORREGIDO CON NAVEGACIÓN DRILLDOWN
+        Object oBtnJugadores is a cWebButton
+            Set psCaption to "Ver Jugadores"
+            Set piColumnSpan to 2
+            Set piColumnIndex to 0
+
+            // Registro de ruta obligatorio hacia la vista de jugadores
+            WebRegisterPath ntNavigateForward oSelectJugador
+
+            Procedure OnClick
+                // Lanzamos la navegación hacia adelante
+                Send NavigateForward of oSelectJugador Self
+            End_Procedure
+
+            // Filtramos los jugadores para que solo salgan los de esta posición (Parent)
+            Procedure OnGetNavigateForwardData tWebNavigateData ByRef NavigateData Handle hoToView
+                If (hoToView = oSelectJugador) Begin
+                    Move nfFromParent to NavigateData.eNavigateType
+                End
+            End_Procedure
+        End_Object
 
         Object oposicionID is a cWebForm
             Entry_Item posicion.ID
@@ -36,7 +61,7 @@ Object oZoomPosicion is a cWebView
             Set piColumnIndex to 0
             Set peLabelPosition to lpTop
             Set psLabel to "ID"
-        End_Object 
+        End_Object
 
         Object oposicionNombre is a cWebForm
             Entry_Item posicion.Nombre
@@ -44,20 +69,19 @@ Object oZoomPosicion is a cWebView
             Set piColumnIndex to 0
             Set peLabelPosition to lpTop
             Set psLabel to "Nombre"
-        End_Object 
-    End_Object 
+        End_Object
+
+    End_Object
 
     Object oActionGroup is a cWebMenuGroup
 
         Object oSaveBtn is a cWebMenuItem
             Set psCSSClass to "WebSaveMenuItem"
             Set psCaption to "Save"
-
             Procedure OnClick
                 Send Request_Save
             End_Procedure
-
-        End_Object 
+        End_Object
 
         Object oEditBtn is a cWebMenuItem
             Set psCSSClass to "WebEditMenuItem"
@@ -66,19 +90,16 @@ Object oZoomPosicion is a cWebView
                 Send ChangeEditMode True
                 Send SetActionButtons
             End_Procedure
-
-        End_Object 
+        End_Object
 
         Object oDeleteBtn is a cWebMenuItem
             Set psCSSClass to "WebDeleteMenuItem"
             Set psCaption to "Delete"
             Set peActionDisplay to adMenu
-
             Procedure OnClick
                 Send Request_Delete
             End_Procedure
-
-        End_Object 
+        End_Object
 
         Object oCancelChangesBtn is a cWebMenuItem
             Set psCSSClass to "WebIcon_Refresh"
@@ -87,9 +108,9 @@ Object oZoomPosicion is a cWebView
             Procedure OnClick
                 Send RefreshRecord
             End_Procedure
+        End_Object
 
-        End_Object 
-    End_Object 
+    End_Object
 
     Procedure SetActionButtons
         tWebNavigateData NavigateData
@@ -100,7 +121,6 @@ Object oZoomPosicion is a cWebView
         Get GetNavigateData to NavigateData
         Get HasRecord of hoDD to bHasRecord
 
-        // let's hide all buttons and then Show the ones we want
         WebSet pbRender of oEditBtn to False
         WebSet pbRender of oSaveBtn to False
         WebSet pbRender of oCancelChangesBtn to False
@@ -117,35 +137,15 @@ Object oZoomPosicion is a cWebView
     End_Procedure
 
     Procedure OnViewSaved Handle hoServer Boolean bChanged
-        // Close after save
         Send NavigateClose Self
     End_Procedure
 
-    // this will close the view after a delete
     Procedure OnViewDeleted Handle hoDDO
         Send NavigateClose Self
     End_Procedure
 
     Procedure OnNavigateForward tWebNavigateData NavigateData Integer hoInvokingView Integer hoInvokingObject
-        Case Begin
-            Case (NavigateData.eNavigateType = nfFromMain)
-                // If from main, this is a propbably a main file Select to Zoom.
-                Case Break
-
-            Case (NavigateData.eNavigateType = nfFromParent)
-                // If from parent, this is a constrained drill down.
-                Case Break
-
-            Case (NavigateData.eNavigateType = nfFromChild)
-                // If from child, this is a probably a parent Zoom from a Zoom.
-                Case Break
-
-            Case Else // must be nfUndefined
-
-        Case End
-
         Send SetActionButtons
-
     End_Procedure
 
-End_Object 
+End_Object

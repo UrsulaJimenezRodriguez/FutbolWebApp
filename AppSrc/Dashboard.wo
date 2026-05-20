@@ -29,6 +29,7 @@ Object oDashboard is a cWebView
 
     Set piMaxWidth to 1024
     
+    
     Set psCaption to "Dashboard"
     Set peViewType to vtUndefined
     Set pbShowCaption to False
@@ -64,6 +65,24 @@ Object oDashboard is a cWebView
                 End_Procedure
                 
             End_Object
+            
+            Object oTileSelectEntrenador is a cWebHtmlBox
+                Set pbServerOnClick to True
+                Set piColumnSpan to 6
+                Set piColumnIndex to 6
+                Set psCSSClass to "Tile LightAlternate"
+                Set psHtml to '<div class="WebCon_Sizer" data-ServerOnClick="openview"><div Class="Tile_Title">Entrenador</div><div class="Tile_Subtitle"></div></div>'
+                                
+                WebRegisterPath ntNavigateForwardCustom oSelectEntrenador
+                
+                Procedure OnClick String sId String sParam
+                    Send NavigatePath
+                End_Procedure
+                
+            End_Object
+    
+    
+    
     
             Object oTileSelectJugador is a cWebHtmlBox
                 Set pbServerOnClick to True

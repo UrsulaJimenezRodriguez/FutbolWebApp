@@ -1,14 +1,15 @@
 ﻿// D:\DataFlex Projects\FutbolWebApp2\AppSrc\ZoomLiga.wo
 // ZoomLiga
-//
 
 Use cWebView.pkg
 Use cWebPanel.pkg
 Use cWebMenuGroup.pkg
 Use cWebMenuItem.pkg
 Use cWebForm.pkg
+Use cWebList.pkg // AÑADIDO: Necesario para la lista de equipos
 
 Use cligaDataDictionary.dd
+Use cequipoDataDictionary.dd
 
 Object oZoomLiga is a cWebView
     Set piColumnCount to 12
@@ -22,9 +23,15 @@ Object oZoomLiga is a cWebView
     Object oliga_DD is a cligaDataDictionary
     End_Object 
 
-    Set Main_DD To oliga_DD
-    Set Server  To oliga_DD
+    // --- TAREA 2: Añadido el DD de equipo ---
+    Object oequipo_DD is a cequipoDataDictionary
+        Set DDO_Server to oliga_DD
+        Set Constrain_file to liga.File_number
+    End_Object
+    // ----------------------------------------
 
+    Set Main_DD to oliga_DD
+    Set Server  to oliga_DD
 
     Object oWebMainPanel is a cWebPanel
         Set piColumnCount to 12
@@ -69,18 +76,44 @@ Object oZoomLiga is a cWebView
             Set peLabelPosition to lpTop
             Set psLabel to "EquiposMax"
         End_Object 
+        
+        // --- TAREA 2: Lista de equipos incrustada ---
+        Object oEquiposList is a cWebList
+            Set Server to oequipo_DD
+            Set piColumnSpan to 12
+            Set pbFillHeight to True
+            Set pbDataAware to True
+
+            Object oEquipoNombre is a cWebColumn
+                Entry_Item equipo.Nombre 
+                Set psCaption to "Equipos de esta Liga"
+            End_Object
+        End_Object
+        // --------------------------------------------
     End_Object 
 
     Object oActionGroup is a cWebMenuGroup
 
+        // TAREA 1: Botón para navegar a equipos
+        Object oVerEquiposBtn is a cWebMenuItem
+            Set psCaption to "Ver Equipos"
+            Set psCSSClass to "WebIcon_Info"
+
+            // Registro de ruta obligatorio
+            WebRegisterPath ntNavigateForward oSelectEquipo 
+
+            Procedure OnClick
+                // Inicia navegación
+                Send NavigateForward of oSelectEquipo Self
+            End_Procedure
+        End_Object
+
         Object oSaveBtn is a cWebMenuItem
             Set psCSSClass to "WebSaveMenuItem"
             Set psCaption to "Save"
-
             Procedure OnClick
                 Send Request_Save
             End_Procedure
-
         End_Object 
 
         Object oEditBtn is a cWebMenuItem
@@ -90,18 +123,15 @@ Object oZoomLiga is a cWebView
                 Send ChangeEditMode True
                 Send SetActionButtons
             End_Procedure
-
         End_Object 
 
         Object oDeleteBtn is a cWebMenuItem
             Set psCSSClass to "WebDeleteMenuItem"
             Set psCaption to "Delete"
             Set peActionDisplay to adMenu
-
             Procedure OnClick
                 Send Request_Delete
             End_Procedure
-
         End_Object 
 
         Object oCancelChangesBtn is a cWebMenuItem
@@ -111,10 +141,10 @@ Object oZoomLiga is a cWebView
             Procedure OnClick
                 Send RefreshRecord
             End_Procedure
-
         End_Object 
     End_Object 
 
+    // CONTROL DE VISIBILIDAD
     Procedure SetActionButtons
         tWebNavigateData NavigateData
         Boolean bHasRecord
@@ -124,14 +154,15 @@ Object oZoomLiga is a cWebView
         Get GetNavigateData to NavigateData
         Get HasRecord of hoDD to bHasRecord
 
-        // let's hide all buttons and then Show the ones we want
         WebSet pbRender of oEditBtn to False
         WebSet pbRender of oSaveBtn to False
         WebSet pbRender of oCancelChangesBtn to False
         WebSet pbRender of oDeleteBtn to False
+        WebSet pbRender of oVerEquiposBtn to False // Ocultar por defecto
 
         If (NavigateData.bReadOnly) Begin
             WebSet pbRender of oEditBtn to True
+            WebSet pbRender of oVerEquiposBtn to True // Mostrar al consultar liga
         End
         Else Begin
             WebSet pbRender of oSaveBtn to True
@@ -140,36 +171,24 @@ Object oZoomLiga is a cWebView
         End
     End_Procedure
 
+    // TAREA 1: Paso de datos (Filtro por liga)
+    Procedure OnGetNavigateForwardData tWebNavigateData ByRef NavigateData Handle hoToView
+        If (hoToView = oSelectEquipo) Begin
+            // nfFromParent indica que filtramos equipos por esta liga
+            Move nfFromParent to NavigateData.eNavigateType
+        End
+    End_Procedure
+
     Procedure OnViewSaved Handle hoServer Boolean bChanged
-        // Close after save
         Send NavigateClose Self
     End_Procedure
 
-    // this will close the view after a delete
     Procedure OnViewDeleted Handle hoDDO
         Send NavigateClose Self
     End_Procedure
 
     Procedure OnNavigateForward tWebNavigateData NavigateData Integer hoInvokingView Integer hoInvokingObject
-        Case Begin
-            Case (NavigateData.eNavigateType = nfFromMain)
-                // If from main, this is a propbably a main file Select to Zoom.
-                Case Break
-
-            Case (NavigateData.eNavigateType = nfFromParent)
-                // If from parent, this is a constrained drill down.
-                Case Break
-
-            Case (NavigateData.eNavigateType = nfFromChild)
-                // If from child, this is a probably a parent Zoom from a Zoom.
-                Case Break
-
-            Case Else // must be nfUndefined
-
-        Case End
-
         Send SetActionButtons
-
     End_Procedure
 
-End_Object 
+End_Object
