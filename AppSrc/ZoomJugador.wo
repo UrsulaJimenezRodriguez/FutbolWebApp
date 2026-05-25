@@ -15,6 +15,7 @@ Use cposicionDataDictionary.dd
 
 // Incluimos la vista de selección para evitar errores de compilación tipo 4514/4345
 Use SelectPosicion.wo
+Use SelectEquipo.wo // AÑADIDO: Para poder navegar a la lista de equipos (From Child)
 
 Object oZoomJugador is a cWebView
     Set piColumnCount to 12
@@ -88,8 +89,11 @@ Object oZoomJugador is a cWebView
             Set psLabel to "EquipoID"
             Set pbPromptButton to True
 
+            // SOLUCIÓN AL COMENTARIO DEL PROFESOR: Navegación "From Child" de la lupa
+            WebRegisterPath ntNavigateForward oSelectEquipo
+
             Procedure OnPrompt
-                Send NavigatePath
+                Send NavigateForward of oSelectEquipo Self
             End_Procedure
         End_Object 
     End_Object 
@@ -170,10 +174,15 @@ Object oZoomJugador is a cWebView
         End
     End_Procedure
 
-    // TAREA 3: RELACIÓN UNDEFINED HACIA LA TABLA MAESTRA DE POSICIONES
+    // CONFIGURACIÓN CENTRAL DE EVENTOS ONGETNAVIGATEFORWARDDATA
     Procedure OnGetNavigateForwardData tWebNavigateData ByRef NavigateData Handle hoToView
+        // TAREA 3: RELACIÓN UNDEFINED HACIA LA TABLA MAESTRA DE POSICIONES
         If (hoToView = oSelectPosicion) Begin
             Move nfUndefined to NavigateData.eNavigateType
+        End
+        // SOLUCIÓN AL PROFESOR: Navegación From Child al buscar Equipo
+        Else If (hoToView = oSelectEquipo) Begin
+            Move nfFromChild to NavigateData.eNavigateType
         End
     End_Procedure
 
